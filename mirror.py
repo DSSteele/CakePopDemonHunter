@@ -4,7 +4,7 @@ print('This is mirror.py')
 
 import numpy as np
 import cv2 as cv
-
+first = True
 cap = cv.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open camera")
@@ -23,9 +23,14 @@ while True:
         break
     # Our operations on the frame come here
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    if first:
+        prev_gray = gray
+        first = False
 
     # Calculate change in gray
-    delta = cv.absdiff(gray, prev_gray)
+    #delta = cv.absdiff(gray, prev_gray).sum()
+    delta = cv.absdiff(gray[0:100, 0:100], prev_gray[0:100, 0:100]).sum()
+    cv.rectangle(frame, (0,0), (100,100), (100,100,100), 2)
 
     # Display text
     cv.putText(frame, str(delta), (50,300),
