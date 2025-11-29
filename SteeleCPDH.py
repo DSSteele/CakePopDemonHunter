@@ -14,6 +14,9 @@ audio_file = os.path.join(script_dir, "golden_parody.mp3")
 first = True
 score = 0
 FONT = cv.FONT_HERSHEY_SIMPLEX
+# Create a new OpenCV cascade classifier and
+# load the Haar wavelet profile for a face.
+face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
 cap = cv.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open camera")
@@ -47,6 +50,16 @@ while True:
     #delta = cv.absdiff(gray, prev_gray).sum()
     delta = cv.absdiff(gray[0:100, 0:100], prev_gray[0:100, 0:100]).sum()
     cv.rectangle(frame, (0,0), (100,100), (100,100,100), 2)
+
+    # Detect faces
+    # Uses CascadeClassifier member function to create
+    # a list of face objects
+    faces = face_cascade.detectMultiScale(gray)
+
+    # Draw rectangle around the faces
+    for (x, y, w, h) in faces:
+        cv.rectangle(frame, (x, y), (x+w, y+h), (255,255,255), 2)
+        cv.rectangle(frame, (x+2, y+2), (x+w-4, y+h-4), (132,38,80), 2)
 
     # Display text
     cv.putText(frame, str(delta), (50,300),
