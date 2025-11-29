@@ -12,6 +12,8 @@ import pygame
 script_dir = os.path.dirname(os.path.abspath(__file__))
 audio_file = os.path.join(script_dir, "golden_parody.mp3")
 first = True
+score = 0
+FONT = cv.FONT_HERSHEY_SIMPLEX
 cap = cv.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open camera")
@@ -19,9 +21,9 @@ if not cap.isOpened():
 
 # start pygame mixer
 pygame.mixer.init()
-# load and play audio
+# load and play audio on a loop
 pygame.mixer.music.load(audio_file)
-pygame.mixer.music.play()
+pygame.mixer.music.play(-1)
 
 while True:
     # Capture frame-by-frame
@@ -48,14 +50,18 @@ while True:
 
     # Display text
     cv.putText(frame, str(delta), (50,300),
-        cv.FONT_HERSHEY_SIMPLEX,
-        2,              # fontScale
+        FONT,
+        2.0,            # fontScale
         (255,255,255),  # color
         4)              # thickness
-
-    cv.putText(frame, "Hello", (50,100),
-        cv.FONT_HERSHEY_SIMPLEX,
-        2,              # fontScale
+    cv.putText(frame, f"Score: {score}", (180, 460),
+        FONT,
+        2.0,            # fontScale
+        (255,255,255),  # color
+        8)              # thickness
+    cv.putText(frame, f"Score: {score}", (180, 460),
+        FONT,
+        2.0,            # fontScale
         (132,38,80),    # color
         4)              # thickness
 
