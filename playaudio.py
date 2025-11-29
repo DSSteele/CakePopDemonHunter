@@ -2,13 +2,20 @@
 print('This is playaudio.py')
 
 import os
-from playsound import playsound
+#from playsound import playsound
+import pygame
+
+# start pygame mixer
+pygame.mixer.init()
 
 # get directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
+audio_file = os.path.join(script_dir, "golden_parody.mp3")
 
-# build path to audio file relative to script
-audio_file = os.path.join(script_dir, "golden_parody.mp3").replace("\\", "/")
+# load and play audio
+pygame.mixer.music.load(audio_file)
+pygame.mixer.music.play()
 
-# play audio
-playsound(audio_file)
+# if user input, stop
+input()
+pygame.mixer.music.stop()
