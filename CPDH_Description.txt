@@ -10,47 +10,47 @@ Initialization:
 - Opens the webcam feed
 - Starts background audio loop using pygame.mixer
 
-Frame Capture and Mirroring Each iteration of the main loop:
+Frame capture and mirroring each iteration of the main loop:
 - Captures a frame from the webcam
 - Flips the frame horizontally so that movement appears natural to the
   player
 - Converts the frame to grayscale for face detection and motion
   comparisons
 
-Motion Detection in Corners:
+Motion detection in corners:
 - The grayscale frame is compared to the previous frame using cv.absdiff
 - Four small regions (one in each corner) are compared to detect motion
 - If motion exceeds a set threshold and a demon is currently active in
   that corner, the demon is removed, and the score increases by 1
 
-Corner Demon Spawning:
+Corner demon spawning:
 - At timed intervals, the program selects a random corner and places a
   demon there
 - The demon is represented as a filled rectangle with the letter “D”
 
-Face Detection:
+Face detection:
 - The program uses Haar cascade to detect faces in the current frame
 - A colored rectangle is drawn around all detected faces
 - The coordinates of the main detected face are stored and used for
   collision detection with the falling demon
 
-Falling Middle Demon:
+Falling middle demon:
 - A demon in the middle of the screen moves downward each frame
 - If it reaches the bottom of the screen, it resets to the top and the
   player gains 5 points
 - If the falling demon intersects the player’s face rectangle, the game
   ends
 
-Collision Logic:
+Collision logic:
 - The program checks whether the player’s face overlaps with the falling
   demon’s area
 - If an overlap occurs, the game enters the “GAME OVER” state
 
-Displaying Score and Game Over Text:
+Displaying score and game over text:
 - The score is drawn onto the frame each iteration
 - When the game ends, large “GAME OVER” text is displayed
 
-Input Handling:
+Input handling:
 - Pressing ‘q’ sets the game to end
 - The window continues updating until the final frame is shown
 
