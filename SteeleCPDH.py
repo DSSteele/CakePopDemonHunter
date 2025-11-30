@@ -7,19 +7,22 @@ import numpy as np
 import cv2 as cv
 import os, pygame, random, time
 
-# get directory where this script is located
+# Get directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
 audio_file = os.path.join(script_dir, "golden_parody.mp3")
-# game state variables
+# Game state variables
 score = 0
 corner = 0
 first = True
+middleY = -480
+endText = False
+gameOver = False
 tl = tr = bl = br = False
-CORNER_SPAWN_TIME = 2.0     # seconds
-MIDDLE_SPAWN_TIME = 10.0    # seconds
-TOUCH_THRESHOLD = 100000
+faceX = faceY = faceW = faceH = 0
+CORNER_SPAWN_TIME = 2.0 # seconds
+TOUCH_THRESHOLD = 80000
 FONT = cv.FONT_HERSHEY_SIMPLEX
-# function definitions
+# Function definitions
 def chooseCorner():
     global corner
     corner = random.randint(1,4)
@@ -75,30 +78,29 @@ if not cap.isOpened():
     print("Cannot open camera")
     exit()
 
-# start pygame mixer
+# Start pygame mixer
 pygame.mixer.init()
-# load and play audio on a loop
+# Load and play audio on a loop
 pygame.mixer.music.load(audio_file)
 pygame.mixer.music.play(-1)
 
-lastCornerSpawn = time.time()
-lastMiddleSpawn = time.time()
+stopwatch = time.time()
 
 while True:
     now = time.time()
-    if not tl and not tr and not bl and not br:
-        if now - lastCornerSpawn >= CORNER_SPAWN_TIME:
-            chooseCorner()
-            lastCornerSpawn = now
+
+    # See if user wants to quit
+    if gameOver == True:
+        break
+    if endText == True:
+        gameOver = True
 
     # Capture frame-by-frame
     ret, frame = cap.read()
-
     # Flip every frame in the horizontal direction
     frame = cv.flip(frame, 1)
     height, width = frame.shape[:2]
-
-    # if frame is read correctly ret is True
+    # If frame is read correctly ret is True
     if not ret:
         print("Can't receive frame (stream end?). Exiting ...")
         break
@@ -107,41 +109,12 @@ while True:
     if first:
         prev_gray = gray
         first = False
-
     # Calculate change in gray
     delta1 = cv.absdiff(gray[0:80, 0:80], prev_gray[0:80, 0:80]).sum()
     delta2 = cv.absdiff(gray[0:80, 560:640], prev_gray[0:80, 560:640]).sum()
-    delta3 = cv.absdiff(gray[380:460, 0:80], prev_gray[380:460, 0:80]).sum()
-    delta4 = cv.absdiff(gray[380:460, 560:640], prev_gray[380:460, 560:640]).sum()
-    if tl == True and delta1 >= TOUCH_THRESHOLD:
-        tl = False
-        lastCornerSpawn = now
-        score += 1
-    if tr == True and delta2 >= TOUCH_THRESHOLD:
-        tr = False
-        lastCornerSpawn = now
-        score += 1
-    if bl == True and delta3 >= TOUCH_THRESHOLD:
-        bl = False
-        lastCornerSpawn = now
-        score += 1
-    if br == True and delta4 >= TOUCH_THRESHOLD:
-        br = False
-        lastCornerSpawn = now
-        score += 1
-
-    spawnDemon()
-    # Detect faces
-    # Uses CascadeClassifier member function to create
-    # a list of face objects
-    faces = face_cascade.detectMultiScale(gray)
-
-    # Draw rectangle around the faces
-    for (x, y, w, h) in faces:
-        cv.rectangle(frame, (x, y), (x+w, y+h), (255,255,255), 2)
-        cv.rectangle(frame, (x+2, y+2), (x+w-4, y+h-4), (132,38,80), 2)
-
-    # Display text
+    delta3 = cv.absdiff(gray[400:480, 0:80], prev_gray[400:480, 0:80]).sum()
+    delta4 = cv.absdiff(gray[400:480, 560:640], prev_gray[400:480, 560:640]).sum()
+    # Display score text
     cv.putText(frame, f"Score: {score}", (180, 460),
         FONT,
         2.0,            # fontScale
@@ -153,19 +126,78 @@ while True:
         (132,38,80),    # color
         4)              # thickness
 
-    # Display the resulting frame
-    #cv.imshow('frame', gray)
-    cv.imshow('frame', frame)
+    # Detect faces
+    # Uses CascadeClassifier member function to create
+    # a list of face objects
+    faces = face_cascade.detectMultiScale(gray)
+    # Draw rectangle around the faces
+    for (x, y, w, h) in faces:
+        cv.rectangle(frame, (x, y), (x+w, y+h), (255,255,255), 2)
+        cv.rectangle(frame, (x+2, y+2), (x+w-4, y+h-4), (132,38,80), 2)
+        faceX = x
+        faceY = y
+        faceW = x+w
+        faceH = y+h
 
-    #Save previous frame
+    if not tl and not tr and not bl and not br:
+        if now - stopwatch >= CORNER_SPAWN_TIME:
+            chooseCorner()
+            stopwatch = now
+    spawnDemon()
+    if tl == True and delta1 >= TOUCH_THRESHOLD:
+        tl = False
+        stopwatch = now
+        score += 1
+    if tr == True and delta2 >= TOUCH_THRESHOLD:
+        tr = False
+        stopwatch = now
+        score += 1
+    if bl == True and delta3 >= TOUCH_THRESHOLD:
+        bl = False
+        stopwatch = now
+        score += 1
+    if br == True and delta4 >= TOUCH_THRESHOLD:
+        br = False
+        stopwatch = now
+        score += 1
+
+    # Draw moving middle demon
+    cv.rectangle(frame, (280,middleY), (360,middleY+80), (0,0,0), -1)
+    cv.putText(frame, "D", (300,middleY+60),
+        FONT,
+        2.0,            # fontScale
+        (0,0,255),      # color
+        4)              # thickness
+    if middleY <= 480:
+        middleY += 5
+    else:
+        middleY = -480
+        score += 5
+
+    if (faceX < 360 and faceW > 280) and (faceY < middleY+80 and faceH > middleY):
+        endText = True
+    if cv.waitKey(1) == ord('q'):
+        endText = True
+    if endText == True:
+        # Display text
+        cv.putText(frame, "GAME OVER", (140, 240),
+            FONT,
+            2.0,            # fontScale
+            (255,255,255),  # color
+            8)              # thickness
+        cv.putText(frame, "GAME OVER", (140, 240),
+            FONT,
+            2.0,            # fontScale
+            (132,38,80),    # color
+            4)              # thickness
+    # Display the resulting frame
+    cv.imshow('Cake Pop Demon Hunters', frame)
+    # Save previous frame
     prev_gray = gray
 
-    # See if user wants to quit
-    if cv.waitKey(1) == ord('q'):
-        break
-
-# When everything done, release the capture
-# and stop playing music
+# Stop playing music
 pygame.mixer.music.stop()
+time.sleep(2)
+# When everything done, release the capture
 cap.release()
 cv.destroyAllWindows()
