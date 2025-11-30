@@ -3,13 +3,14 @@
 
 print('This is SteeleCPDH.py')
 
-import numpy as np
 import cv2 as cv
+import numpy as np
 import os, pygame, random, time
 
-# Get directory where this script is located
+# Get audio from current directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
 audio_file = os.path.join(script_dir, "golden_parody.mp3")
+
 # Game state variables
 score = 0
 corner = 0
@@ -19,154 +20,148 @@ endText = False
 gameOver = False
 tl = tr = bl = br = False
 faceX = faceY = faceW = faceH = 0
-CORNER_SPAWN_TIME = 2.0 # seconds
-TOUCH_THRESHOLD = 80000
+CORNER_SPAWN_TIME = 2.0  # seconds
+TOUCH_THRESHOLD = 50000  # sensitivity
 FONT = cv.FONT_HERSHEY_SIMPLEX
-# Function definitions
+
+# Corner selection
 def chooseCorner():
-    global corner
-    corner = random.randint(1,4)
+    global corner, tl, tr, bl, br
+    corner = random.randint(1, 4)
     match corner:
         case 1:
-            global tl
             tl = True
         case 2:
-            global tr
             tr = True
         case 3:
-            global bl
             bl = True
         case 4:
-            global br
             br = True
 
+# Draw corner demon boxes
 def spawnDemon():
-    if tl == True:
-        cv.rectangle(frame, (0,0), (80,80), (0,0,0), -1)
-        cv.putText(frame, "D", (20,60),
-            FONT,
+    if tl:
+        cv.rectangle(frame, (0, 0), (80, 80), (0, 0, 0), -1)
+        cv.putText(frame, "D", (20, 60), FONT,
             2.0,            # fontScale
-            (0,0,255),      # color
+            (0, 0, 255),    # color
             4)              # thickness
-    if tr == True:
-        cv.rectangle(frame, (width-80,0), (width,80), (0,0,0), -1)
-        cv.putText(frame, "D", (width-60,60),
-            FONT,
+    if tr:
+        cv.rectangle(frame, (width-80, 0), (width, 80), (0, 0, 0), -1)
+        cv.putText(frame, "D", (width-60, 60), FONT,
             2.0,            # fontScale
-            (0,0,255),      # color
+            (0, 0, 255),    # color
             4)              # thickness
-    if bl == True:
-        cv.rectangle(frame, (0,height-80), (80,height), (0,0,0), -1)
-        cv.putText(frame, "D", (20,height-20),
-            FONT,
+    if bl:
+        cv.rectangle(frame, (0, height-80), (80, height), (0, 0, 0), -1)
+        cv.putText(frame, "D", (20, height-20), FONT,
             2.0,            # fontScale
-            (0,0,255),      # color
+            (0, 0, 255),    # color
             4)              # thickness
-    if br == True:
-        cv.rectangle(frame, (width-80,height-80), (width,height), (0,0,0), -1)
-        cv.putText(frame, "D", (width-60,height-20),
-            FONT,
+    if br:
+        cv.rectangle(frame, (width-80, height-80), (width, height), (0, 0, 0), -1)
+        cv.putText(frame, "D", (width-60, height-20), FONT,
             2.0,            # fontScale
-            (0,0,255),      # color
+            (0, 0, 255),    # color
             4)              # thickness
 
-# Create a new OpenCV cascade classifier and
-# load the Haar wavelet profile for a face.
+# Create new OpenCV cascade classifier; load Haar wavelet profile for face
 face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
 cap = cv.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
 
-# Start pygame mixer
+# Setup music and timer
 pygame.mixer.init()
-# Load and play audio on a loop
 pygame.mixer.music.load(audio_file)
 pygame.mixer.music.play(-1)
-
 stopwatch = time.time()
 
+# Main game loop
 while True:
     now = time.time()
 
-    # See if user wants to quit
-    if gameOver == True:
+    # quit logic
+    if gameOver:
         break
-    if endText == True:
+    if endText:
         gameOver = True
 
-    # Capture frame-by-frame
+    # capture frame-by-frame
     ret, frame = cap.read()
-    # Flip every frame in the horizontal direction
+
+    # flip every frame in the horizontal direction
     frame = cv.flip(frame, 1)
     height, width = frame.shape[:2]
-    # If frame is read correctly ret is True
+
+    # if frame is read correctly, ret is True
     if not ret:
         print("Can't receive frame (stream end?). Exiting ...")
         break
-    # Our operations on the frame come here
+
+    # our operations on the frame come here
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     if first:
         prev_gray = gray
         first = False
-    # Calculate change in gray
+
+    # calculate change in grayscale in each corner
     delta1 = cv.absdiff(gray[0:80, 0:80], prev_gray[0:80, 0:80]).sum()
     delta2 = cv.absdiff(gray[0:80, 560:640], prev_gray[0:80, 560:640]).sum()
     delta3 = cv.absdiff(gray[400:480, 0:80], prev_gray[400:480, 0:80]).sum()
     delta4 = cv.absdiff(gray[400:480, 560:640], prev_gray[400:480, 560:640]).sum()
-    # Display score text
-    cv.putText(frame, f"Score: {score}", (180, 460),
-        FONT,
-        2.0,            # fontScale
-        (255,255,255),  # color
-        8)              # thickness
-    cv.putText(frame, f"Score: {score}", (180, 460),
-        FONT,
-        2.0,            # fontScale
-        (132,38,80),    # color
-        4)              # thickness
 
-    # Detect faces
-    # Uses CascadeClassifier member function to create
-    # a list of face objects
+    # show score text
+    cv.putText(frame, f"Score: {score}", (180, 460), FONT,
+        2.0,                # fontScale
+        (255, 255, 255),    # color
+        8)                  # thickness
+    cv.putText(frame, f"Score: {score}", (180, 460), FONT,
+        2.0,                # fontScale
+        (132, 38, 80),      # color
+        4)                  # thickness
+
+    # detect faces
     faces = face_cascade.detectMultiScale(gray)
-    # Draw rectangle around the faces
     for (x, y, w, h) in faces:
-        cv.rectangle(frame, (x, y), (x+w, y+h), (255,255,255), 2)
-        cv.rectangle(frame, (x+2, y+2), (x+w-4, y+h-4), (132,38,80), 2)
+        cv.rectangle(frame, (x, y), (x+w, y+h), (255, 255, 255), 2)
+        cv.rectangle(frame, (x+2, y+2), (x+w-4, y+h-4), (132, 38, 80), 2)
         faceX = x
         faceY = y
-        faceW = x+w
-        faceH = y+h
+        faceW = x + w
+        faceH = y + h
 
-    if not tl and not tr and not bl and not br:
+    # spawn corner demons
+    if not (tl or tr or bl or br):
         if now - stopwatch >= CORNER_SPAWN_TIME:
             chooseCorner()
             stopwatch = now
     spawnDemon()
-    if tl == True and delta1 >= TOUCH_THRESHOLD:
+
+    # corner demon interactions
+    if tl and delta1 >= TOUCH_THRESHOLD:
         tl = False
         stopwatch = now
         score += 1
-    if tr == True and delta2 >= TOUCH_THRESHOLD:
+    if tr and delta2 >= TOUCH_THRESHOLD:
         tr = False
         stopwatch = now
         score += 1
-    if bl == True and delta3 >= TOUCH_THRESHOLD:
+    if bl and delta3 >= TOUCH_THRESHOLD:
         bl = False
         stopwatch = now
         score += 1
-    if br == True and delta4 >= TOUCH_THRESHOLD:
+    if br and delta4 >= TOUCH_THRESHOLD:
         br = False
         stopwatch = now
         score += 1
 
-    # Draw moving middle demon
-    cv.rectangle(frame, (280,middleY), (360,middleY+80), (0,0,0), -1)
-    cv.putText(frame, "D", (300,middleY+60),
-        FONT,
+    # moving middle demon
+    cv.rectangle(frame, (280, middleY), (360, middleY+80), (0, 0, 0), -1)
+    cv.putText(frame, "D", (300, middleY+60), FONT,
         2.0,            # fontScale
-        (0,0,255),      # color
+        (0, 0, 255),    # color
         4)              # thickness
     if middleY <= 480:
         middleY += 5
@@ -174,30 +169,33 @@ while True:
         middleY = -480
         score += 5
 
+    # collision with face
     if (faceX < 360 and faceW > 280) and (faceY < middleY+80 and faceH > middleY):
         endText = True
+
+    # see if user wants to quit
     if cv.waitKey(1) == ord('q'):
         endText = True
-    if endText == True:
-        # Display text
-        cv.putText(frame, "GAME OVER", (140, 240),
-            FONT,
-            2.0,            # fontScale
-            (255,255,255),  # color
-            8)              # thickness
-        cv.putText(frame, "GAME OVER", (140, 240),
-            FONT,
-            2.0,            # fontScale
-            (132,38,80),    # color
-            4)              # thickness
-    # Display the resulting frame
+
+    # show game over text
+    if endText:
+        cv.putText(frame, "GAME OVER", (140, 240), FONT,
+            2.0,                # fontScale
+            (255, 255, 255),    # color
+            8)                  # thickness
+        cv.putText(frame, "GAME OVER", (140, 240), FONT,
+            2.0,                # fontScale
+            (132, 38, 80),      # color
+            4)                  # thickness
+
+    # display the resulting frame
     cv.imshow('Cake Pop Demon Hunters', frame)
-    # Save previous frame
+
+    # save previous frame
     prev_gray = gray
 
-# Stop playing music
+# When everything done, release the capture
 pygame.mixer.music.stop()
 time.sleep(2)
-# When everything done, release the capture
 cap.release()
 cv.destroyAllWindows()
